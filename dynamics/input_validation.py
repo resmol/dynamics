@@ -86,9 +86,15 @@ def load_data(inp: Mapping[str, T]) -> Configuration:
     geometry = Molecule(file_geometry=inp["geometry"])
     connectivity = np.loadtxt(inp["connectivity"]).astype(np.int)
     natoms = int(np.sqrt(connectivity.size))
-    hessian = np.loadtxt(inp["hessian"]).reshape(natoms, natoms)
+    connectivity = connectivity.reshape(natoms, natoms)
+    hessian = read_hessian(inp["hessian"], natoms)
     if inp["gradient"] is not None:
         grad = np.loadtxt(inp["gradient"])
 
     return Configuration(geometry, connectivity, hessian,
                          grad, inp["time"], inp["dt"], inp["temperature"])
+
+
+def read_hessian(file_path: str, natoms: int) -> np.ndarray:
+    """Read a square matrix from plain ascii text."""
+    return np.loadtxt(file_path).reshape(natoms, natoms)

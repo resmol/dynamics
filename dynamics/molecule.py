@@ -23,7 +23,7 @@ AU_MASS = physical_constants["atomic unit of mass"][0]  # Kg
 UMA_AUMASS_RATIO = UMA / AU_MASS
 
 
-class Atom:
+class Atom: 
     """Atom definition."""
 
     def __init__(self, symbol: str, coordinates: Tuple[float, float, float]) -> None:
