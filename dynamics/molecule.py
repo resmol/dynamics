@@ -1,7 +1,7 @@
 """Molecule definition."""
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional, Sequence, Tuple
 from scipy.constants import physical_constants
 
 import mendeleev
@@ -34,7 +34,7 @@ class Atom:
 class Molecule:
     """Molecule definition."""
 
-    def __init__(self, atoms: Optional[List[Atom]] = None, file_geometry: Optional[Path] = None) -> None:
+    def __init__(self, atoms: Optional[Sequence[Atom]] = None, file_geometry: Optional[Path] = None) -> None:
         if file_geometry is not None:
             self.read_from_file(file_geometry)
         else:
@@ -46,10 +46,10 @@ class Molecule:
             [mendeleev.element(atom.symbol).atomic_weight * UMA_AUMASS_RATIO
              for atom in self.atoms])
 
-    def set_atoms(self, atoms: List[Atom]) -> None:
+    def set_atoms(self, atoms: Sequence[Atom]) -> None:
         """Set atoms in object."""
         self.atoms = atoms
-        self.geometry = np.array([at.coordinates for at in atoms])
+        self.coordinates = np.array([at.coordinates for at in atoms])
 
     def read_from_file(self, path: Path, unit="angstrom") -> None:
         """Read coordinates from file."""
@@ -62,7 +62,20 @@ class Molecule:
         atoms = [Atom(symbol, xyz) for symbol, xyz in zip(labels, rs)]
         self.set_atoms(atoms)
 
-    def generate_random_velocities(self, temperature: float = 273.15) -> None:
-        """Use a Maxwell–Boltzmann distribution at `temperature`."""
+    def generate_random_velocities(self, temperature: float = 300) -> None:
+        """Use a Maxwell–Boltzmann distribution at `temperature`.
+
+        From Statistical thermodynamics it is known that the velocities,
+        of the atoms in a classical system are distributed according
+        to the Maxwell-Boltzmann distribution.This says that if the temperature
+        of the system is T, the probability of each component of the velocity
+        of the ith atom  having a value between v and v + dv is:
+
+        f(V) dV = sqrt(Mass /2 pi Kb T) * exp(-Massi V^2 / 2 Kb T) * dV
+
+        The values of the velocities of the atoms can be assigned by treating them
+        as independent Gaussian random variables drawm from the above distribution
+        with mean value of 0 and standart deviation of sqrt(KbT/Mass) 
+        """
         sigmas = np.sqrt(temperature * KB / self.masses)
         self.velocities = np.random.normal(0, sigmas)

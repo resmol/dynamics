@@ -39,7 +39,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[
-        'mendeleev', 'numpy', 'pyparsing', 'scipy'],
+        'mendeleev', 'numpy', 'pyparsing', 'scipy', "yaml"],
 
     extras_require={
         'test': ['coverage', 'pycodestyle', 'pytest>=3.9', 'pytest-cov',
