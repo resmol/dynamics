@@ -64,6 +64,7 @@ class Thermostat:
         self.dt = dt
         self.temperature = temperature
         freq = AU_TIME / relax_factor  # 1 / [atomic units of time]
+        print(mol.atoms)
         numat = len(mol.atoms)
         # Q Units are Energy * (times ^ 2)
         self.q1 = 3 * numat * temperature * BOLTZMANN_AU / (freq ** 2)
@@ -80,7 +81,8 @@ def run_simulation(config: Configuration) -> None:
     dt = config.dt * AU_TIME
 
     # Initialize the thermostat
-    thermo = Thermostat(dt, mol, temperature)
+    thermo = Thermostat(mol, dt, config.temperature)
 
+    raise RuntimeError("BOOM!")
     # run the MD
     # for t in config.time:

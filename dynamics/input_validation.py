@@ -83,13 +83,15 @@ def validate_input(input_file: str) -> Configuration:
 def load_data(inp: Mapping[str, T]) -> Configuration:
     """Load the required data for the simulation."""
     # Square matrix with the connectivy
-    geometry = Molecule(file_geometry=inp["geometry"])
+    geometry = Molecule(file_geometry=inp["molecule"])
     connectivity = np.loadtxt(inp["connectivity"]).astype(np.int)
     natoms = int(np.sqrt(connectivity.size))
     connectivity = connectivity.reshape(natoms, natoms)
     hessian = read_hessian(inp["hessian"], natoms)
     if inp["gradient"] is not None:
         grad = np.loadtxt(inp["gradient"])
+    else:
+        grad = np.zeros(natoms * 3)
 
     return Configuration(geometry, connectivity, hessian,
                          grad, inp["time"], inp["dt"], inp["temperature"])
@@ -97,4 +99,4 @@ def load_data(inp: Mapping[str, T]) -> Configuration:
 
 def read_hessian(file_path: str, natoms: int) -> np.ndarray:
     """Read a square matrix from plain ascii text."""
-    return np.loadtxt(file_path).reshape(natoms, natoms)
+    return np.loadtxt(file_path).reshape(natoms * 3, natoms * 3)

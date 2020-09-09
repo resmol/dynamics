@@ -39,11 +39,15 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[
-        'mendeleev', 'numpy', 'pyparsing', 'scipy', "yaml"],
+        'mendeleev', 'numpy', 'pyparsing', 'scipy', "pyyaml"],
 
     extras_require={
         'test': ['coverage', 'pycodestyle', 'pytest>=3.9', 'pytest-cov',
                  'pytest-mock'],
         'doc': ['sphinx', 'sphinx-autodoc-typehints', 'sphinx_rtd_theme']
+    },
+    entry_points={
+        'console_scripts': [
+            'run_dynamics=dynamics.run_dynamics:main']
     }
 )

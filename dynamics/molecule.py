@@ -54,8 +54,8 @@ class Molecule:
     def read_from_file(self, path: Path, unit="angstrom") -> None:
         """Read coordinates from file."""
         xs = parser_xyz.parseFile(path)
-        labels = (atom.label.capitalize() for atom in xs)
-        coordinates = [np.array(atom.xyz) for atom in xs]
+        labels = [atom.label.capitalize() for atom in xs]
+        coordinates = [np.array(atom.xyz[:3]).astype(np.float) for atom in xs]
         if unit.lower() == "angstrom":
             rs = [x / BOHR2ANGS for x in coordinates]
 

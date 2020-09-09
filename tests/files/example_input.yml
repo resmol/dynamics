@@ -1,4 +1,10 @@
 energy: -78.473414390911
 
 molecule:
+  "tests/files/ethylene.xyz"
+
+connectivity:
   "tests/files/ethylene_adjacency.in"
+
+hessian:
+  "tests/files/hessian.txt"
