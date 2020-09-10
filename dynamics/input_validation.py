@@ -14,8 +14,10 @@ import numpy as np
 import yaml
 from schema import Optional, Or, Schema, SchemaError
 
+from .constants import AU_TIME
 from .dynamics import Configuration
 from .molecule import Molecule
+
 
 T = TypeVar("T")
 
@@ -46,7 +48,10 @@ schema_dynamics = Schema({
     Optional("time", default=1000): int,
 
     # Temperature in Kelvin
-    Optional("temperature", default=300): Real
+    Optional("temperature", default=300): Real,
+
+    # equilibration time in femtoseconds
+    Optional("equilibration", default=100): int
 })
 
 
@@ -89,12 +94,16 @@ def load_data(inp: Mapping[str, T]) -> Configuration:
     connectivity = connectivity.reshape(natoms, natoms)
     hessian = read_hessian(inp["hessian"], natoms)
     if inp["gradient"] is not None:
-        grad = np.loadtxt(inp["gradient"])
+        grad = np.loadtxt(inp["gradient"]).reshape(natoms, 3)
     else:
-        grad = np.zeros(natoms * 3)
+        grad = np.zeros((natoms, 3))
+
+    # convert times to AU
+    dt_au, time_au, equilibration_au = [
+        inp[x] * AU_TIME for x in ("dt", "time", "equilibration")]
 
     return Configuration(geometry, connectivity, hessian,
-                         grad, inp["time"], inp["dt"], inp["temperature"])
+                         grad, int(time_au), int(equilibration_au), dt_au, inp["temperature"])
 
 
 def read_hessian(file_path: str, natoms: int) -> np.ndarray:

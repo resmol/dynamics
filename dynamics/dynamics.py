@@ -4,20 +4,12 @@ import logging
 from typing import NamedTuple, Optional
 
 import numpy as np
-from scipy.constants import physical_constants
 
+from .constants import AU_TIME, BOLTZMANN_AU
 from .molecule import Molecule
 
 # Starting logger
 logger = logging.getLogger(__name__)
-
-# from femtoseconds to au
-AU_TIME = 1e15 * physical_constants["atomic unit of time"][0]
-
-# Boltzmann constant in au Hartree/Kelvin
-BOLTZMANN_JULES = physical_constants["Boltzmann constant"][0]
-HARTREE = physical_constants["atomic unit of energy"][0]
-BOLTZMANN_AU = BOLTZMANN_JULES / HARTREE
 
 
 class Configuration(NamedTuple):
@@ -28,6 +20,7 @@ class Configuration(NamedTuple):
     hessian: np.ndarray
     gradient: Optional[np.ndarray]
     time: int
+    equilibration: int
     dt: float
     temperature: float
 
@@ -62,27 +55,110 @@ class Thermostat:
         self.scale = 1.
 
         self.dt = dt
-        self.temperature = temperature
+        self.T = temperature
         freq = AU_TIME / relax_factor  # 1 / [atomic units of time]
-        print(mol.atoms)
-        numat = len(mol.atoms)
+        self.natoms = len(mol.atoms)
         # Q Units are Energy * (times ^ 2)
-        self.q1 = 3 * numat * temperature * BOLTZMANN_AU / (freq ** 2)
-        self.q2 = BOLTZMANN_AU / temperature * (freq ** 2)
+        self.Q1 = 3 * self.natoms * temperature * BOLTZMANN_AU / (freq ** 2)
+        self.Q2 = BOLTZMANN_AU / temperature * (freq ** 2)
+
+    def update(self, mol: Molecule, kinetic_energy: float) -> None:
+        """Update the thermostat state."""
+        dt2 = self.dt * 0.5
+
+        self.update_vx2()
+        self.update_vx1(kinetic_energy)
+        self.scale = np.exp(-self.vx1 * dt2)
+
+        new_kinetic = kinetic_energy * self.scale ** 2.
+
+        self.update_vx1(new_kinetic)
+        self.update_vx2()
+
+    def update_vx1(self, ek: float) -> None:
+        """Update the vx1 term."""
+        dt4 = self.dt * 0.25
+        dt8 = self.dt * 0.125
+
+        self.vx1 += np.exp(-self.vx2 * dt8)
+        g1 = (2 * ek - 3 * self.natoms * self.T * BOLTZMANN_AU) / self.Q1
+        self.vx1 += g1 * dt4
+        self.vx1 *= np.exp(-self.vx2 * dt8)
+
+    def update_vx2(self) -> None:
+        """Update the vx2 term."""
+        dt4 = self.dt * 0.25
+
+        g2 = (self.Q1 * (self.vx1 ** 2) -
+              self.T * BOLTZMANN_AU) / self.Q2
+        self.vx2 += g2 * dt4
 
 
 def run_simulation(config: Configuration) -> None:
-    """Run a MD simulation using a given `config`."""
+    """Run a MD simulation using a given `config`.
+
+    Parameters
+    ----------
+    config
+        Configuration to run the simulation. e.g. temperature, time, etc.
+
+    """
+    logger.info("Starting the simulation")
     mol = config.molecule
     # Initialize the velocities
     mol.generate_random_velocities()
-
-    # convert time delta to AU
-    dt = config.dt * AU_TIME
+    logger.info(
+        "Random initial velocities velocities have been generated using a Maxwell-Boltzmann distribution")
 
     # Initialize the thermostat
-    thermo = Thermostat(mol, dt, config.temperature)
+    thermo = Thermostat(mol, config.dt, config.temperature)
+    logger.info("The thermostat has been initialize")
 
-    raise RuntimeError("BOOM!")
     # run the MD
-    # for t in config.time:
+    logger.info("Equilibrating the system")
+    run_dynamics(mol, config, thermo, step="equilibration")
+    logger.info("Running MD simulation")
+    run_dynamics(mol, config, thermo)
+
+
+def run_dynamics(mol: Molecule, config: Configuration, thermo: Thermostat, step="simulation") -> Molecule:
+    """
+    Run a molecular dynamics for the given molecule an configuration.
+
+    Parameters
+    ----------
+    mol
+        Molecule representing the state
+    config
+        Configuration to run the simulation
+    thermo
+        Thermostat state
+
+    Returns
+    -------
+    Final state of the molecule
+
+    """
+    time = config.time if step == "simulation" else config.equilibration
+    dt = config.dt
+    for t in range(time):
+        # First phase of Nose-Hoover
+        kinetic_energy = mol.compute_kinetic()
+        mol = thermo.update(kinetic_energy)
+
+        # Scale the velocities
+        mol.velocities *= thermo.scale
+
+        # Update the phase space
+        mol.update_positions(dt)
+        mol.update_velocities(dt)
+
+        # Compute new gradient
+        mol.update_gradient()
+
+        # Second phase of Nose-Hoover
+        kinetic_energy = mol.compute_kinetic()
+        mol.update_velocities(dt)
+        thermo.update(mol, kinetic_energy)
+
+    logger.info(f"MD {step} has finished!")
