@@ -106,3 +106,23 @@ class Molecule:
         """Compute the kinetic energy of the system."""
         squared_velocities = np.sum(self.velocities * self.velocities, axis=1)
         return np.sum(0.5 * self.masses * squared_velocities)
+
+    def remove_translations(self) -> None:
+        """Remove molecular translations.
+
+        When expressing internal coordinates in terms of cartesian,
+        the `Eckart conditions <https://en.wikipedia.org/wiki/Eckart_conditions>` must
+        be fulfill.
+        """
+        total_mass = self.masses.sum()
+        center_mass_vel = np.sum(self.masses * self.velocities) / total_mass
+        self.velocities -= center_mass_vel
+
+    def remove_rotations(self) -> None:
+        """Remove molecular rotations.
+
+        When expressing internal coordinates in terms of cartesian,
+        the `Eckart conditions <https://en.wikipedia.org/wiki/Eckart_conditions>` must
+        be fulfill.
+        """
+        raise NotImplementedError

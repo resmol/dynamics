@@ -62,7 +62,7 @@ class Thermostat:
         self.Q1 = 3 * self.natoms * temperature * BOLTZMANN_AU / (freq ** 2)
         self.Q2 = BOLTZMANN_AU / temperature * (freq ** 2)
 
-    def update(self, mol: Molecule, kinetic_energy: float) -> None:
+    def update(self, kinetic_energy: float) -> None:
         """Update the thermostat state."""
         dt2 = self.dt * 0.5
 
@@ -142,9 +142,14 @@ def run_dynamics(mol: Molecule, config: Configuration, thermo: Thermostat, step=
     time = config.time if step == "simulation" else config.equilibration
     dt = config.dt
     for t in range(time):
+
+        # Remove translation and rotations
+        mol.remove_translations()
+        mol.remove_rotations()
+
         # First phase of Nose-Hoover
         kinetic_energy = mol.compute_kinetic()
-        mol = thermo.update(kinetic_energy)
+        thermo.update(kinetic_energy)
 
         # Scale the velocities
         mol.velocities *= thermo.scale
