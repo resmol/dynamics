@@ -50,7 +50,4 @@ limitations under the License.
 
 
 
-Credits
-*******
 
-This package was created with `Cookiecutter <https://github.com/audreyr/cookiecutter>`_ and the `NLeSC/python-template <https://github.com/NLeSC/python-template>`_.
